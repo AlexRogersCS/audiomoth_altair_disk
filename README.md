@@ -24,7 +24,7 @@ An example screenshot is shown below:
 
 #### Disk Commands
 
-Use ```MOUNT n``` to mount a specific floppy disk. Use ```DSKINI n``` to format a floppy disk before mounting. 
+Use ```MOUNT n``` to mount a specific floppy disk. Use ```DSKINI n``` to format a floppy disk before mounting. If the disk number is omitted, then disk 0 is assumed.
 
 Use ```FILES n``` to view the files on a floppy disk. Filenames are case sensitive and up to 8 characters long.
 
