@@ -30,7 +30,9 @@ Use ```FILES n``` to view the files on a floppy disk. Filenames are case sensiti
 
 Use ```SAVE "name",n``` and ```LOAD "name",n"``` to save and load files. Use ```RUN "name",n``` to load and run a file. 
 
-Use ```KILL "name",n``` to delete a file and ```NAME "old_name" AS "new_name",n```
+Use ```KILL "name",n``` to delete a file and ```NAME "old_name" AS "new_name",n``` to rename a file.
+
+There are no commands to copy files betwween disks. However, programs can be loaded and resaved.
 
 #### Libraries 
 
