@@ -297,9 +297,9 @@ static void checkAndCreateDiskImage() {
 
         checkedExistence[currentDisk] = true;
 
-    }
+        AudioMoth_closeFile();
 
-    AudioMoth_closeFile();
+    }
 
 }
 
@@ -327,8 +327,6 @@ static void loadSector() {
 
 static void unloadSector() {
 
-    AudioMoth_setRedLED(true);
-
     sprintf(filename, "DISK%02ld.DSK", currentDisk);
   
     if (checkedExistence[currentDisk] == false) checkAndCreateDiskImage();
@@ -336,6 +334,8 @@ static void unloadSector() {
     bool success = AudioMoth_openFileToEdit(filename);
 
     if (success == false) return;
+
+    AudioMoth_setRedLED(true);
 
     AudioMoth_seekInFile(currentTrack * DISK_TRACK_SIZE + currentSector * DISK_SECTOR_SIZE);
 
@@ -675,6 +675,10 @@ int main(void) {
         currentSector = 0;
         currentByte = 0;
 
+        /* Reset disk lookup */
+
+        memset(checkedExistence, 0, MAX_NUMBER_OF_DISKS);
+
         /* Reset Intel 8080 */
 
         i8080_reset(&cpu);
@@ -696,7 +700,7 @@ int main(void) {
         /* Clear the memory */
 
         memset(cpu.memory, 0, MEMORY_SIZE);
-        
+
         /* Copy program to memory */
 
         memcpy(cpu.memory, basicdisk24k50, sizeof(basicdisk24k50));
@@ -782,11 +786,7 @@ int main(void) {
         if (switchPosition == AM_SWITCH_USB) break;
 
     }
-
-    /* Close any disk files */
-
-    unloadSector();
-
+    
     /* Power down */
 
     AudioMoth_powerDownAndWakeMilliseconds(DEFAULT_WAIT_INTERVAL);
