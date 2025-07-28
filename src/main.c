@@ -235,7 +235,7 @@ static int UsbDataReceived(USB_Status_TypeDef status, uint32_t xferred, uint32_t
 
 /* Firmware version and description */
 
-static uint8_t firmwareVersion[AM_FIRMWARE_VERSION_LENGTH] = {1, 0, 0};
+static uint8_t firmwareVersion[AM_FIRMWARE_VERSION_LENGTH] = {1, 0, 1};
 
 static uint8_t firmwareDescription[AM_FIRMWARE_DESCRIPTION_LENGTH] = "AudioMoth-Altair-8800-Disk";
 
@@ -570,6 +570,20 @@ void handle_output(struct i8080 *cpu, uint device, uint data) {
 
 }
 
+/* Clear terminal */
+
+void clearTerminal() {
+
+    AudioMoth_delay(DEFAULT_WAIT_INTERVAL);
+
+    uint32_t length = sprintf((char*)usbTxBuffer, "\033[2J\033[H");
+
+    USBD_Write(CDC_EP_DATA_IN, (void*)usbTxBuffer, length, UsbDataSent);
+
+    AudioMoth_delay(DEFAULT_WAIT_INTERVAL);
+
+}
+
 /* Main function */
 
 int main(void) {
@@ -598,35 +612,19 @@ int main(void) {
 
     USBD_Init(&initstruct);
 
-    /* Enable external SRAM and SD card */
+    /* Clear terminal */
 
-    bool sramSuccess = AudioMoth_enableExternalSRAM();
+    clearTerminal();
 
-    AudioMoth_setRedLED(true);
+    /* Enable SD card */
 
-    bool sdcardSuccess = AudioMoth_enableFileSystem(AM_SD_CARD_NORMAL_SPEED);
+    bool success = AudioMoth_enableExternalSRAM();
 
-    AudioMoth_setRedLED(false);
-
-    if (sramSuccess == false || sdcardSuccess == false) {
+    if (success == false) {
 
         while (switchPosition != AM_SWITCH_USB) {
 
-            uint32_t length;
-            
-            if (sramSuccess == false && sdcardSuccess == false) {
-
-                length = sprintf((char*)usbTxBuffer, "Could not enable external SRAM and SD card on this device.\r\n");
-
-            } else if (sramSuccess == false) {
-
-                length = sprintf((char*)usbTxBuffer, "Could not enable external SRAM on this device.\r\n");
-
-            } else {
-
-                length = sprintf((char*)usbTxBuffer, "Could not enable SD card on this device.\r\n");
-
-            }
+            uint32_t length = sprintf((char*)usbTxBuffer, "Could not enable external SRAM on this device.\r\n");
 
             USBD_Write(CDC_EP_DATA_IN, (void*)usbTxBuffer, length, UsbDataSent);
 
@@ -656,15 +654,45 @@ int main(void) {
 
     while (true) {
 
-        /* Show starting text */
+        /* Clear terminal */
 
-        AudioMoth_delay(DEFAULT_WAIT_INTERVAL);
+        clearTerminal();
 
-        uint32_t length = sprintf((char*)usbTxBuffer, "\033[2J\033[H");
+        /* Check file system */
 
-        USBD_Write(CDC_EP_DATA_IN, (void*)usbTxBuffer, length, UsbDataSent);
+        bool success = AudioMoth_enableFileSystem(AM_SD_CARD_NORMAL_SPEED);
 
-        AudioMoth_delay(DEFAULT_WAIT_INTERVAL);
+        while (success == false && switchPosition != AM_SWITCH_USB) {
+
+            uint32_t length = sprintf((char*)usbTxBuffer, "Could not enable SD card on this device.\r\n");
+
+            USBD_Write(CDC_EP_DATA_IN, (void*)usbTxBuffer, length, UsbDataSent);
+
+            AudioMoth_setBothLED(true);
+
+            AudioMoth_delay(500);
+
+            AudioMoth_setBothLED(false);
+
+            AudioMoth_delay(500);
+
+            /* Feed watchdog */
+
+            AudioMoth_feedWatchdog();
+
+            /* Check for a switch change */
+
+            switchPosition = AudioMoth_getSwitchPosition();
+
+            /* Recheck SD card */
+
+            success = AudioMoth_enableFileSystem(AM_SD_CARD_NORMAL_SPEED);
+
+            if (success) clearTerminal();
+
+        }
+
+        if (switchPosition == AM_SWITCH_USB) AudioMoth_powerDownAndWakeMilliseconds(DEFAULT_WAIT_INTERVAL);
 
         /* Initialise disks */
 
